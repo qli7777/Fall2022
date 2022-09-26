@@ -1,0 +1,183 @@
+---
+title: "PSTAT 126 - Lab 1"
+subtitle: "Fall 2022"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+You will use R Markdown for assignments. Refer to the excellent online book, [R Markdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/), for documentation and exploring R Markdown format's [rich set of features](https://rmarkdown.rstudio.com/gallery.html).
+
+_Following section is taken from [Introduction to R Markdown](https://rmarkdown.rstudio.com/articles_intro.html)_
+
+## Introduction to R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see .
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. View the [chapter on chunk options](https://bookdown.org/yihui/rmarkdown-cookbook/chunk-options.html).
+
+Markdown can also display LaTeX equations:
+
+$$
+Y_{i}=\beta_{0}+\beta_{1} X_{i}+\epsilon_{i} .
+$$
+
+View the [chapter on LaTex output](https://bookdown.org/yihui/rmarkdown-cookbook/latex-output.html).
+
+# Simple Linear Regression 
+
+In this section, we will manually compute elements of simple linear regression (SLR) model.
+
+_Data: Applied Linear Statistical Models (Fifth Edition) by Michael H. Kutner_
+
+## Reading Data into R
+Confirm that the data file, `copier.txt`, exists. The command to read the file is
+
+```{r}
+copier <- read.table("copier.txt", header = FALSE)
+```
+
+The argument `header = FALSE` because `copier.txt` does not have a header row. Now view first few lines of `copier`:
+
+```{r}
+head(copier)
+```
+
+The response variable, $Y$, is the total number of minutes (column `V1`) spent by the service time for maintaining a number copiers (column `V2`), which is the independent variable $X$. Let's set suitable column names.
+ 
+```{r}
+colnames(copier) <- c("service_time", "copiers")
+```
+
+Execute the summary function to view summary statistics for each column:
+
+```{r}
+summary(copier)
+```
+
+## OLS Solution: Coefficient Estimates
+
+The OLS estimators that minimize mean squared error (MSE) were derived in lecture:
+$$
+\begin{aligned}
+\beta_0^* = \mu_Y - b_1^*\mu_X, \quad
+\beta_1^* = \frac{\operatorname{Cov}(X, Y)}{\sigma_{X}^2},
+\end{aligned}
+$$
+where the regression function is 
+$$
+E(Y_i) = \beta_{0} + \beta_{1} X_{i}.
+$$
+
+Since we do not know the true values $\mu_X$, $\mu_Y$, $\sigma_X^2$, $\sigma_Y^2$, and $\operatorname{Cov}(X, Y)$, we compute estimates $\hat\beta_0$ and $\hat\beta_1$ using quantities estimated data:
+$$
+\begin{aligned}
+\hat{\beta}_{0} &=\bar{y}-\hat{\beta}_{1} \bar{x}, \quad
+\hat{\beta}_{1} &=\frac{\mathrm{SXY}}{\mathrm{SXX}},
+\end{aligned}
+$$
+where sample estimates are computed as defined in the following table:  
+
+| True quantity    | Sample quantity | Formula for sample estimate                                                                   | Description                            | 
+|:-------------------|:------------------------|:--------------------------------------------------|:---------------------------------------| 
+| $E(X)$          | $\bar{x}$         | $\sum x_i / n$                                                                                | Sample average of $x$                  | 
+| $E(Y)$          | $\bar{y}$         | $\sum y_i / n$                                                                                | Sample average of $y$                  | 
+|                    | $\mathrm{SXX}$    | $\sum\left(x_i-\bar{x}\right)^2=\sum\left(x_i-\bar{x}\right) x_i$                             | Sum of squares for the $x$'s           | 
+| $\operatorname{Var}(X)=\sigma_X^2$  | $\mathrm{SD}_x^2$ | $\mathrm{SXX} /(n-1)$                                                                                | Sample variance of the $x$'s           | 
+| $\sigma_X$    | $\mathrm{SD}_x$   | $\sqrt{\mathrm{SXX}/(n-1)}$                                                                         | Sample standard deviation of the $x$'s | 
+|                    | $\mathrm{SYY}$    | $\sum\left(y_i-\bar{y}\right)^2=\sum\left(y_i-\bar{y}\right) y_i$                             | Sum of squares for the $y$'s           | 
+| $\operatorname{Var}(Y)=\sigma_Y^2$  | $\mathrm{SD}_y^2$ | $\mathrm{SYY} /(n-1)$                                                                                | Sample variance of the $y$'s           | 
+| $\sigma_Y$    | $\mathrm{SD}_y$   | $\sqrt{\mathrm{SYY} /(n-1)}$                                                                         | Sample standard deviation of the $y$'s | 
+|               | $\mathrm{SXY}$    | $\sum\left(x_i-\bar{x}\right)\left(y_i-\bar{y}\right)=\sum\left(x_i-\bar{x}\right) y_i$ | Sum of cross-products                  | 
+| $\operatorname{Cov}(X,Y)$          | $s_{x y}$         | $\mathrm{SXY} /(n-1)$                                                                                | Sample covariance                      | 
+| $\operatorname{Corr}(X,Y)$          | $r_{x y}$         | $s_{x y} /\left(\mathrm{SD}_x \mathrm{SD}_y\right)$                                           | Sample correlation                     | 
+
+
+```{r}
+n = nrow(copier)
+mx = mean(copier$copiers)
+my = mean(copier$service_time)
+SXX = sum((copier$copiers - mx)^2)
+SYY = sum((copier$service_time - my)^2)
+SXY = sum((copier$copiers - mx)*(copier$service_time - my))
+beta1 = SXY/SXX
+beta0 = my - beta1*mx
+```
+
+Estimated regression function is 
+
+$$
+\begin{aligned}
+\hat{y}_{i} &= \hat{\beta}_{0} + \hat{\beta}_{1} x_{i} = `r beta0` + `r beta1` x_{i}
+\end{aligned}
+$$
+
+## OLS Solution: Residual and Coefficient Variances
+
+Recall the variance of error term is $\operatorname{Var}(\epsilon_i) = \sigma^2$.
+
+The residual $e_{i}=y_{i}-\hat{y}_{i}$ is used to compute $\mathrm{RSS}=\sum_{i=1}^{n} e_{i}^{2}$, which is then used to estimate the error variance and the coefficient variance:
+
+$$
+\begin{aligned}
+\hat{\sigma}^{2} &=\frac{1}{n-2} \mathrm{RSS} \\
+\left.\widehat{\operatorname{Var}\left(\hat{\beta}_{1}\right.}\right) &=\frac{\hat{\sigma}^{2}}{\mathrm{SXX}} \\
+\left.\widehat{\operatorname{Var}\left(\hat{\beta}_{0}\right.}\right) &=\hat{\sigma}^{2}\left(\frac{1}{n}+\frac{\bar{x}^{2}}{\mathrm{SXX}}\right)
+\end{aligned}
+$$
+
+```{r}
+e = copier$service_time - (beta0 + beta1*copier$copiers)
+RSS = sum(e^2)
+MSE = RSS/(n-2)
+var_beta1 = MSE/SXX
+var_beta0 = MSE*(1/n + (mx^2)/SXX)
+```
+Following are the computed estimates:
+$$
+\begin{aligned}
+\hat{\sigma}^{2} &= `r MSE` \\
+\left.\widehat{\operatorname{Var}\left(\hat{\beta}_{1}\right.}\right) &= `r var_beta1` = `r sqrt(var_beta1)`^2  \\
+\left.\widehat{\operatorname{Var}\left(\hat{\beta}_{0}\right.}\right) &= `r var_beta0` = `r sqrt(var_beta0)`^2
+\end{aligned}
+$$
+
+## OLS Solution: Built-in `lm` function
+
+Run the `lm` function in R:
+```{r}
+lm_copier = lm(service_time ~ copiers, data = copier)
+summary(lm_copier)
+```
+where `(Intercept)` is $\beta_0$ and `copiers` is $\beta_1$.
+
+In the summary output, can you locate the quantities we computed manually?
+
+We can also print just the coefficient estimates:
+```{r}
+coef(lm_copier)
+```
+
+Print variance-covariance estimates of the regression coefficients:
+```{r}
+vcov(lm_copier)
+```
+Locate the two variances of regression coefficients in the output. What does the third quantity represent?
